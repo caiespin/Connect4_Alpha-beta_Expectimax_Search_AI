@@ -26,38 +26,29 @@ class AIPlayer:
         return valid_cols
 
     def winning_move(self, board, piece):
-        player_win_str = '{0}{0}{0}{0}'.format(piece)
-        to_str = lambda a: ''.join(a.astype(str))
-
-        def check_horizontal(b):
-            for row in b:
-                if player_win_str in to_str(row):
-                    return True
-            return False
-
-        def check_verticle(b):
-            return check_horizontal(b.T)
-
-        def check_diagonal(b):
-            for op in [None, np.fliplr]:
-                op_board = op(b) if op else b
-                
-                root_diag = np.diagonal(op_board, offset=0).astype(np.int)
-                if player_win_str in to_str(root_diag):
+        # Check horizontal locations for win
+        for c in range(7-3):
+            for r in range(5):
+                if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
                     return True
 
-                for i in range(1, b.shape[1]-3):
-                    for offset in [i, -i]:
-                        diag = np.diagonal(op_board, offset=offset)
-                        diag = to_str(diag.astype(np.int))
-                        if player_win_str in diag:
-                            return True
+        # Check vertical locations for win
+        for c in range(7):
+            for r in range(5-3):
+                if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece:
+                    return True
 
-            return False
+        # Check positively sloped diaganols
+        for c in range(7-3):
+            for r in range(5-3):
+                if board[r][c] == piece and board[r+1][c+1] == piece and board[r+2][c+2] == piece and board[r+3][c+3] == piece:
+                    return True
 
-        return (check_horizontal(board) or
-                check_verticle(board) or
-                check_diagonal(board))        
+        # Check negatively sloped diaganols
+        for c in range(7-3):
+            for r in range(3, 5):
+                if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
+                    return True      
 
     def is_terminal_node(self, board):
         valid_cols = []
