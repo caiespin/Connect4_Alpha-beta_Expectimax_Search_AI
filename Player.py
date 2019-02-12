@@ -75,12 +75,12 @@ class AIPlayer:
         if window.count(piece) == 4:
             score += 100
         elif window.count(piece) == 3 and window.count(0) == 1:
-            score += 5
+            score += 50
         elif window.count(piece) == 2 and window.count(0) == 2:
-            score += 2
+            score += 20
 
         if window.count(opp_piece) == 3 and window.count(0) == 1:
-            score -= 4
+            score -= 100
 
         return score
 
@@ -216,6 +216,7 @@ class AIPlayer:
 
         else: #random node
             alpha = 0
+            column = random.choice(valid_locations)
             for col in valid_locations:
                 row = self.get_next_open_row(board, col)
                 b_copy = board.copy()
@@ -271,7 +272,7 @@ class AIPlayer:
         The 0 based index of the column that represents the next move
         """
         piece = self.player_number
-        col, minimax_score = self.expectiminimax(self, board, piece, 5, True)
+        col, minimax_score = self.expectiminimax(board, piece, 3, True)
         print('expectiminimax\n')
         return col
         
