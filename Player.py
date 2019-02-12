@@ -1,36 +1,12 @@
 import numpy as np
+import random
+import math
 
 class AIPlayer:
     def __init__(self, player_number):
         self.player_number = player_number
         self.type = 'ai'
         self.player_string = 'Player {}:ai'.format(player_number)
-
-    def get_alpha_beta_move(self, board):
-        """
-        Given the current state of the board, return the next move based on
-        the alpha-beta pruning algorithm
-
-        This will play against either itself or a human player
-
-        INPUTS:
-        board - a numpy array containing the state of the board using the
-                following encoding:
-                - the board maintains its same two dimensions
-                    - row 0 is the top of the board and so is
-                      the last row filled
-                - spaces that are unoccupied are marked as 0
-                - spaces that are occupied by player 1 have a 1 in them
-                - spaces that are occupied by player 2 have a 2 in them
-
-        RETURNS:
-        The 0 based index of the column that represents the next move
-        """
-        valid_cols = []
-        for col in range(board.shape[1]):
-            if 0 in board[:,col]:
-                valid_cols.append(col)
-        pass
 
     def get_expectimax_move(self, board):
         """
@@ -53,8 +29,7 @@ class AIPlayer:
         RETURNS:
         The 0 based index of the column that represents the next move
         """
-        col, minimax_score = minimax(board, 5, -math.inf, math.inf, True)
-        return col
+        pass
 
     def drop_piece(self, board, row, col, piece):
         board[row][col] = piece
@@ -66,9 +41,15 @@ class AIPlayer:
         for r in range(5):
             if board[r][col] == 0:
                 return r
+    def get_valid_locations(self, board):
+        valid_cols = []
+        for col in range(board.shape[1]):
+            if 0 in board[:,col]:
+                valid_cols.append(col)
+        return valid_cols
 
     def winning_move(self, board, piece):
-        player_win_str = '{0}{0}{0}{0}'.format(player_num)
+        player_win_str = '{0}{0}{0}{0}'.format(piece)
         to_str = lambda a: ''.join(a.astype(str))
 
         def check_horizontal(b):
@@ -106,7 +87,7 @@ class AIPlayer:
         for col in range(board.shape[1]):
             if 0 in board[:,col]:
                 valid_cols.append(col)
-        return winning_move(board, 1) or winning_move(board, 2) or len(valid_cols) == 0
+        return self.winning_move(board, 1) or self.winning_move(board, 2) or len(valid_cols) == 0
 
     def evaluate_window(self, window, piece):
         score = 0
@@ -145,7 +126,7 @@ class AIPlayer:
         RETURNS:
         The utility value for the current board
         """
-       score = 0
+        score = 0
 
         ## Score center column
         center_array = [int(i) for i in list(board[:, 3])]
@@ -153,53 +134,56 @@ class AIPlayer:
         score += center_count * 3
 
         ## Score Horizontal
-        for r in range(ROW_COUNT):
+        for r in range(5):
             row_array = [int(i) for i in list(board[r,:])]
-            for c in range(COLUMN_COUNT-3):
+            for c in range(7-3):
                 window = row_array[c:c+4]
-                score += evaluate_window(window, piece)
+                score += self.evaluate_window(window, piece)
 
         ## Score Vertical
-        for c in range(COLUMN_COUNT):
+        for c in range(7):
             col_array = [int(i) for i in list(board[:,c])]
-            for r in range(ROW_COUNT-3):
+            for r in range(5-3):
                 window = col_array[r:r+4]
-                score += evaluate_window(window, piece)
+                score += self.evaluate_window(window, piece)
 
         ## Score posiive sloped diagonal
-        for r in range(ROW_COUNT-3):
-            for c in range(COLUMN_COUNT-3):
+        for r in range(5-3):
+            for c in range(7-3):
                 window = [board[r+i][c+i] for i in range(4)]
-                score += evaluate_window(window, piece)
+                score += self.evaluate_window(window, piece)
 
-        for r in range(ROW_COUNT-3):
-            for c in range(COLUMN_COUNT-3):
+        for r in range(5-3):
+            for c in range(7-3):
                 window = [board[r+3-i][c+i] for i in range(4)]
-                score += evaluate_window(window, piece)
+                score += self.evaluate_window(window, piece)
 
         return score
 
-    def minimax(board, depth, alpha, beta, maximizingPlayer):
-        valid_locations = get_valid_locations(board)
-        is_terminal = is_terminal_node(board)
+    def minimax(self, board, piece, depth, alpha, beta, maximizingPlayer):
+        opp_piece = 1
+        if piece == 1:
+            opp_piece = 2
+        valid_locations = self.get_valid_locations(board)
+        is_terminal = self.is_terminal_node(board)
         if depth == 0 or is_terminal:
             if is_terminal:
-                if winning_move(board, AI_PIECE):
+                if self.winning_move(board, piece):
                     return (None, 100000000000000)
-                elif winning_move(board, PLAYER_PIECE):
+                elif self.winning_move(board, opp_piece):
                     return (None, -10000000000000)
                 else: # Game is over, no more valid moves
                     return (None, 0)
             else: # Depth is zero
-                return (None, score_position(board, AI_PIECE))
+                return (None, self.evaluation_function(board, piece))
         if maximizingPlayer:
             value = -math.inf
             column = random.choice(valid_locations)
             for col in valid_locations:
-                row = get_next_open_row(board, col)
+                row = self.get_next_open_row(board, col)
                 b_copy = board.copy()
-                drop_piece(b_copy, row, col, AI_PIECE)
-                new_score = minimax(b_copy, depth-1, alpha, beta, False)[1]
+                self.drop_piece(b_copy, row, col, piece)
+                new_score = self.minimax(b_copy, piece, depth-1, alpha, beta, False)[1]
                 if new_score > value:
                     value = new_score
                     column = col
@@ -212,10 +196,10 @@ class AIPlayer:
             value = math.inf
             column = random.choice(valid_locations)
             for col in valid_locations:
-                row = get_next_open_row(board, col)
+                row = self.get_next_open_row(board, col)
                 b_copy = board.copy()
-                drop_piece(b_copy, row, col, PLAYER_PIECE)
-                new_score = minimax(b_copy, depth-1, alpha, beta, True)[1]
+                self.drop_piece(b_copy, row, col, opp_piece)
+                new_score = self.minimax(b_copy, opp_piece, depth-1, alpha, beta, True)[1]
                 if new_score < value:
                     value = new_score
                     column = col
@@ -223,6 +207,31 @@ class AIPlayer:
                 if alpha >= beta:
                     break
             return column, value
+
+    def get_alpha_beta_move(self, board):
+        """
+        Given the current state of the board, return the next move based on
+        the alpha-beta pruning algorithm
+
+        This will play against either itself or a human player
+
+        INPUTS:
+        board - a numpy array containing the state of the board using the
+                following encoding:
+                - the board maintains its same two dimensions
+                    - row 0 is the top of the board and so is
+                      the last row filled
+                - spaces that are unoccupied are marked as 0
+                - spaces that are occupied by player 1 have a 1 in them
+                - spaces that are occupied by player 2 have a 2 in them
+
+        RETURNS:
+        The 0 based index of the column that represents the next move
+        """
+
+        piece = self.player_number
+        col, minimax_score = self.minimax(board, piece, 5, -math.inf, math.inf, True)
+        return col
 
 
 class RandomPlayer:
